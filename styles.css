@@ -1,0 +1,238 @@
+:root {
+    --background-light: #ffffff;
+    --background-purple: #591aab;
+    --background-dark: #000000;
+    --background-grey: #303030;
+    --background-red: #990000;
+    --text-dark: #000000;
+    --text-light: #ffffff;
+    --text-purple: #591aab;
+    --text-grey: #303030;
+}
+
+html {
+    font-size: 62.5%;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    font-family: 'DM Sans', sans-serif;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+header {
+    background-color: var(--background-dark);
+    color: var(--text-purple);
+    width: 100vw;
+    height: 10rem;
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    font-size: 2rem;
+}
+
+.container {
+    width: 100vw;
+    height: calc(100vh - 10rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.top-bar {
+    background-color: var(--background-grey);
+    width: 100%;
+    height: 10rem;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    border-bottom: 5px solid var(--background-purple);
+}
+
+.top-bar ul {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 100%;
+    padding: 0 2rem;
+    list-style: none;
+    width: auto;
+}
+
+.placeable-container, .pathfinder-selector, .tooltip, .reset-walls{
+    display: flex;
+    border: 2px solid var(--background-purple);
+    height: 8rem;
+    align-items: center;
+    font-size: 1.5rem;
+    color: var(--text-light);
+    margin: 0 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.button.dropdown {
+    display: flex;
+    flex-direction: column;
+}
+
+.pathfinder-selector {
+    width: 15rem;
+    justify-content: center;
+}
+
+.pathfinder-selector ul {
+    width: calc(100% + 4px);
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    top: calc(100% + 2px);
+    left: -2px;
+    z-index: 999;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 1rem 2rem;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+    display: none;
+}
+
+ul .open {
+    display: initial;
+}
+
+.pathfinder-selector ul .divider {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0;
+    background-color: var(--background-light);
+    width: calc(100%);
+    height: .15rem;
+}
+
+.pathfinder-selector ul li {
+    cursor: pointer;
+    position: relative;
+}
+
+.pathfinder-selector ul li:last-child::after {
+    display: none;
+}
+
+.placeable-container .button {
+    position: relative;
+}
+
+.placeable-container .button p {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: none;
+    width: max-content;
+    left: 0;
+    top: 2.5rem;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    z-index: 10;
+}
+
+.top-bar .button {
+    margin: 0 2rem;
+    cursor: pointer;
+}
+
+.placeable-container .button:hover p {
+    display: initial;
+}
+
+.top-bar .button i {
+    color: var(--background-purple)
+}
+
+.top-bar .tooltip .button:nth-child(1) i {
+    color: var(--background-light);
+}
+
+.top-bar .tooltip .button:nth-child(2) i {
+    color: var(--background-purple);
+}
+
+.top-bar .tooltip .button:nth-child(3) i {
+    color: var(--background-red);
+}
+
+.pathfinder-container {
+    width: 100%;
+    height: calc(100% - 10rem);
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    grid-template-columns: repeat(50, 30px);
+    grid-template-rows: repeat(0, 30px);
+    background-color: var(--background-grey);
+    overflow: hidden;
+}
+
+.grid-item {
+    width: 3rem;
+    height: 3rem;
+    transition: background-color 600ms;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    animation: grid-item-start 300ms forwards;
+}
+
+.grid-item i {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    opacity: 0;
+    transform: scale(0);
+    animation: node-fade-in 500ms forwards;
+}
+
+.wall {
+    animation: wall-selected 500ms forwards;
+}
+
+@keyframes node-fade-in {
+    form {
+        opacity: 0;
+        transform: scale(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes wall-selected {
+    from {
+        transform: scale(0);
+        background-color: var(--background-light);
+    }
+    to {
+        transform: scale(1);
+        background-color: var(--background-grey);
+        border: none;
+    }
+}
+
+@keyframes grid-item-start {
+    from {
+        border-radius: 100%;
+        border: none;
+        background-color: var(--background-grey);
+    }
+    to {
+        border-radius: 0;
+        border: 0.25px solid black;
+        background-color: var(--background-light);
+    }
+}
