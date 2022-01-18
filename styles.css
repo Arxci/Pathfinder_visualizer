@@ -1,12 +1,12 @@
 :root {
     --background-light: #ffffff;
-    --background-purple: #591aab;
+    --background-purple: #0099ff;
     --background-dark: #000000;
     --background-grey: #303030;
     --background-red: #990000;
     --text-dark: #000000;
     --text-light: #ffffff;
-    --text-purple: #591aab;
+    --text-purple: #0099ff;
     --text-grey: #303030;
 }
 
@@ -33,6 +33,11 @@ header {
     font-size: 2rem;
 }
 
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
 .container {
     width: 100vw;
     height: calc(100vh - 10rem);
@@ -50,7 +55,8 @@ header {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    border-bottom: 5px solid var(--background-purple);
+    border-bottom: 2px solid var(--background-purple);
+    border-top: 2px solid var(--background-purple);
 }
 
 .top-bar ul {
@@ -128,6 +134,10 @@ ul .open {
     position: relative;
 }
 
+.placeable-container .button:nth-child(2) i {
+    color: black;
+}
+
 .placeable-container .button p {
     position: absolute;
     background-color: rgba(0, 0, 0, 0.8);
@@ -184,7 +194,7 @@ ul .open {
     display: flex;
     justify-content: center;
     align-content: center;
-    animation: grid-item-start 300ms forwards;
+    animation: grid-item-start 300ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
 .grid-item i {
@@ -194,11 +204,15 @@ ul .open {
     font-size: 3rem;
     opacity: 0;
     transform: scale(0);
-    animation: node-fade-in 500ms forwards;
+    animation: node-fade-in 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
+}
+
+.reset-walls {
+    cursor: pointer;
 }
 
 .wall {
-    animation: wall-selected 500ms forwards;
+    animation: wall-selected 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
 @keyframes node-fade-in {
@@ -213,14 +227,31 @@ ul .open {
 }
 
 @keyframes wall-selected {
-    from {
+    0% {
         transform: scale(0);
         background-color: var(--background-light);
     }
-    to {
+    40% {
+        background-color: #008cff;
+    }
+    50% {
+        background-color: #005eff;
+    }
+    60% {
+        background-color: #0044ff;
+    }
+    70% {
+        background-color: #1700f2;
+    }
+    80% {
+        background-color: #0b0073;
+    }
+    90% {
+        background-color: #060040;
+    }
+    100% {
         transform: scale(1);
-        background-color: var(--background-grey);
-        border: none;
+        background-color: #000000;
     }
 }
 
@@ -233,6 +264,6 @@ ul .open {
     to {
         border-radius: 0;
         border: 0.25px solid black;
-        background-color: var(--background-light);
+        background-color: var(--background-purple);
     }
 }

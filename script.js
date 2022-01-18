@@ -82,11 +82,11 @@ function UpdatePathFinder(i) {
             break;
         case 3:
             currentPathfinder = 'BFS';
-            dropdown.childNodes[1].innerText = 'Breadth-first Algorithim';
+            dropdown.childNodes[1].innerText = 'Breadth-first Search';
             break;
         case 4:
             currentPathfinder = 'DFS';
-            dropdown.childNodes[1].innerText = 'Depth-first Algorithim';
+            dropdown.childNodes[1].innerText = 'Depth-first Search';
             break;
     }
 }
