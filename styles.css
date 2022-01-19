@@ -31,11 +31,30 @@ header {
     align-items: center;
     padding: 0 2rem;
     font-size: 2rem;
+    position: relative;
 }
 
 a {
     color: inherit;
     text-decoration: none;
+}
+
+body {
+    overflow: hidden;
+}
+
+.start-error-container {
+    position: absolute;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-light);
+}
+.start-error {
+    background-color: var(--background-red);
+    padding: 1rem 2rem;
+    animation: start-error 1000ms, error-fade-out 1000ms 3000ms forwards;
 }
 
 .container {
@@ -69,16 +88,33 @@ a {
     width: auto;
 }
 
-.placeable-container, .pathfinder-selector, .tooltip, .reset-walls{
+.placeable-container, .pathfinder-selector, .tooltip {
     display: flex;
     border: 2px solid var(--background-purple);
-    height: 8rem;
+    height: 6rem;
     align-items: center;
     font-size: 1.5rem;
     color: var(--text-light);
     margin: 0 2rem;
     text-align: center;
     position: relative;
+}
+
+.reset-walls, .start-button {
+    border: 2px solid var(--background-purple);
+    border-radius: 10rem;
+    width: auto;
+    margin-right: 2rem;
+    color: var(--text-light);
+    font-size: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: 300ms;
+}
+
+.reset-walls:hover, .start-button:hover {
+    transform: scale(1.1);
+    background-color: var(--background-purple);
 }
 
 .button.dropdown {
@@ -190,11 +226,11 @@ ul .open {
 .grid-item {
     width: 3rem;
     height: 3rem;
-    transition: background-color 600ms;
+    border: 0.25px solid black;
     display: flex;
     justify-content: center;
     align-content: center;
-    animation: grid-item-start 300ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
+    animation: grid-item-start 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
 .grid-item i {
@@ -207,21 +243,80 @@ ul .open {
     animation: node-fade-in 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
-.reset-walls {
-    cursor: pointer;
+.closed-node {
+    animation: closed-node 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
+}
+
+.open-node {
+    animation: open-node 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
 .wall {
     animation: wall-selected 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
 }
 
+.best-path {
+    animation: best-path 500ms cubic-bezier(0.48, 0, 0, 1.61) forwards;
+}
+
+@keyframes error-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes start-error {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 @keyframes node-fade-in {
-    form {
+    from {
         opacity: 0;
         transform: scale(0);
     }
     to {
         opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes best-path {
+    from {
+        background-color: #0044ff;
+        transform: scale(0);
+    }
+    to {
+        background-color: var(--background-red);
+        transform: scale(1);
+    }
+}
+
+@keyframes closed-node {
+    from {
+        background-color: var(--background-purple);
+        transform: scale(0);
+    }
+    to {
+        background-color: #0044ff;
+        transform: scale(1);
+    }
+}
+
+@keyframes open-node {
+    from {
+        var(--background-purple);
+        transform: scale(0);
+    }
+    to {
+        background-color: #1700f2;
         transform: scale(1);
     }
 }
@@ -256,14 +351,31 @@ ul .open {
 }
 
 @keyframes grid-item-start {
-    from {
-        border-radius: 100%;
-        border: none;
-        background-color: var(--background-grey);
-    }
-    to {
-        border-radius: 0;
-        border: 0.25px solid black;
+
+    100% {
+        transform: scale(1);
         background-color: var(--background-purple);
+    }
+    90% {
+        background-color: #008cff;
+    }
+    80% {
+        background-color: #005eff;
+    }
+    70% {
+        background-color: #0044ff;
+    }
+    60% {
+        background-color: #1700f2;
+    }
+    50% {
+        background-color: #0b0073;
+    }
+    40% {
+        background-color: #060040;
+    }
+    0% {
+        transform: scale(0);
+        background-color: var(--background-grey);
     }
 }
