@@ -105,6 +105,7 @@ $(document).ready(function() {
             var nodes = document.getElementsByClassName('grid-item open-node');
             var node;
             var timer;
+            needsReset = true;
             if (document.getElementsByClassName('grid-item open-node').length > 0 || document.getElementsByClassName('grid-item best-path').length > 0 || document.getElementsByClassName('grid-item closed-node').length > 0) {
                 timer = setInterval(() => {
                     if (document.getElementsByClassName('grid-item best-path').length == 0 && document.getElementsByClassName('grid-item closed-node').length == 0 && document.getElementsByClassName('grid-item open-node').length == 0) {
@@ -113,7 +114,7 @@ $(document).ready(function() {
                     } else if (document.getElementsByClassName('grid-item closed-node').length == 0 && document.getElementsByClassName('grid-item open-node').length == 0) {
                         nodes = document.getElementsByClassName('grid-item best-path');
                         node = nodes[0];
-                    node.classList.remove('best-path');
+                        node.classList.remove('best-path');
                     } else if (document.getElementsByClassName('grid-item open-node').length == 0) {
                         nodes = document.getElementsByClassName('grid-item closed-node');
                         node = nodes[0];
@@ -141,7 +142,7 @@ $(document).ready(function() {
 
     function ResetWalls() {
         if (!hasStarted) {
-            if (!creatingMaze && !resettingWalls) {
+            if (!creatingMaze) {
                 var timer;
                 resettingWalls = true
                 const nodes = document.getElementsByClassName('grid-item wall');
@@ -316,7 +317,7 @@ $(document).ready(function() {
                     hasStarted = false;
                     needsReset = true;
                 }
-            }, 50);
+            }, 25);
         } 
     }
 
@@ -452,7 +453,9 @@ $(document).ready(function() {
                     i = 0;
                     j = 0;
                     ResetWalls();
+                    
                     ResetNodes();
+
                     maze = mazes[parseInt(Math.random() * (mazes.length))];
                     timer = setInterval(() => {
                         if (!resettingWalls && !needsReset) {
