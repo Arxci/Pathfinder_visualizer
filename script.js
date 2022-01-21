@@ -1,10 +1,16 @@
 $(document).ready(function() {
     function HandleWallPlacement(e) {
-        if (e.shiftKey && (e.target.className === 'grid-item' || e.target.className === 'grid-item wall') && e.buttons) {
-            if (e.target.childNodes.length == 0) {
-                e.target.classList.toggle('wall');
+
+            if (e.shiftKey && (e.target.className === 'grid-item' || e.target.className === 'grid-item wall') && e.buttons) {
+                if (!hasStarted) {
+                    if (e.target.childNodes.length == 0) {
+                        e.target.classList.toggle('wall');
+                    }
+                } else {
+                    StartError("Visualizer is currently running!");
+                }
             }
-        }
+
     }
     
     function IsWall(gridItem) {
@@ -12,37 +18,46 @@ $(document).ready(function() {
     }
     
     function HandleStartNodePlacement(e) {
-        if (e.buttons && e.target.className === 'grid-item' && !e.shiftKey && !e.ctrlKey) {
-            if (e.target.childNodes.length == 0) {
-                const start = document.getElementsByClassName('start');
-                if (start[0]) {
-                    start[0].parentElement.removeChild(start[0]);
+            if (e.buttons && e.target.className === 'grid-item' && !e.shiftKey && !e.ctrlKey) {
+                if (!hasStarted) {
+                    if (e.target.childNodes.length == 0) {
+                        const start = document.getElementsByClassName('start');
+                        if (start[0]) {
+                            start[0].parentElement.removeChild(start[0]);
+                        }
+                        const item = document.createElement('i');
+                        item.classList.toggle('fa');
+                        item.classList.toggle('fa-arrow-right');
+                        item.classList.toggle('start');
+                        item.style.color = '#000000';
+                        e.target.appendChild(item);
+                    }
+                } else {
+                    StartError("Visualizer is currently running!");
                 }
-                const item = document.createElement('i');
-                item.classList.toggle('fa');
-                item.classList.toggle('fa-arrow-right');
-                item.classList.toggle('start');
-                item.style.color = '#000000';
-                e.target.appendChild(item);
             }
-        }
+
     }
     
     function HandleTargetNodePlacement(e) {
-        if (e.ctrlKey && e.buttons && e.target.className === 'grid-item') {
-            if (e.target.childNodes.length == 0) {
-                const target = document.getElementsByClassName('target');
-                if (target[0]) {
-                    target[0].parentElement.removeChild(target[0]);
+            if (e.ctrlKey && e.buttons && e.target.className === 'grid-item') {
+                if (!hasStarted) {
+                    if (e.target.childNodes.length == 0) {
+                        const target = document.getElementsByClassName('target');
+                        if (target[0]) {
+                            target[0].parentElement.removeChild(target[0]);
+                        }
+                        const item = document.createElement('i');
+                        item.classList.toggle('far');
+                        item.classList.toggle('fa-dot-circle');
+                        item.classList.toggle('target');
+                        item.style.color = '#000000';
+                        e.target.appendChild(item);
+                    }
+                } else {
+                    StartError("Visualizer is currently running!");
                 }
-                const item = document.createElement('i');
-                item.classList.toggle('far');
-                item.classList.toggle('fa-dot-circle');
-                item.classList.toggle('target');
-                item.style.color = '#000000';
-                e.target.appendChild(item);
             }
-        }
     }
     
     function GetStartPos() {
@@ -78,9 +93,20 @@ $(document).ready(function() {
     }
     
     function ResetWalls() {
-        const walls = document.getElementsByClassName('wall');
-        while (walls.length != 0) {
-            walls[0].classList.remove('wall');
+        if (!hasStarted) {
+            const nodes = document.getElementsByClassName('grid-item');
+            for (let node of nodes) {
+                node.classList.remove('wall');
+                node.classList.remove('open-node');
+                node.classList.remove('closed-node');
+                node.classList.remove('best-path');
+                $(node).data('f', Infinity);
+                $(node).data('h', 0);
+                $(node).data('g', Infinity);
+                $(node).data('neighbors', 0);
+                $(node).data('previous', 0);
+            }
+            needsReset = false;
         }
     }
     
@@ -143,6 +169,10 @@ $(document).ready(function() {
             StartError("Visualizer already running!");
             return;
         }
+        if (needsReset) {
+            StartError("Reset nodes to continue!");
+            return;
+        }
         switch (currentPathfinder) {
             case '':
                 StartError("Select a pathfinder to run the visualizer!");
@@ -157,8 +187,22 @@ $(document).ready(function() {
                 StartAStar();
                 break;
             case 'Dijksra':
+                hasStarted = true;
+                for (var i = 0; i < rows; i++) {
+                    for(var j = 0; j < cols; j++) {
+                        UpdateNeighbors(i, j)
+                    }
+                }
+                StartDijkstra();
                 break;
             case 'Swarm':
+                hasStarted = true;
+                for (var i = 0; i < rows; i++) {
+                    for(var j = 0; j < cols; j++) {
+                        UpdateNeighbors(i, j)
+                    }
+                }
+                StartSwarm();
                 break;
             case 'BFS':
                 break;
@@ -175,6 +219,84 @@ $(document).ready(function() {
         }
     }
 
+    function RunSwarm(openSet, closedSet, timer) {
+
+    }
+
+    function StartSwarm() {
+        var timer = setInterval(() => {
+            RunSwarm(openSet, closedSet, timer);
+            if (openSet.length <= 0) {
+                clearInterval(timer);
+                hasStarted = false;
+                needsReset = true;
+            }
+        }, 15)
+    }
+
+    function RunDijkstra(openSet, closedSet, timer) {
+        current = openSet[0];
+
+        if (current === end) {
+            ReBuildPath(current, timer);
+        }
+
+        RemoveFromArray(openSet, current);
+        closedSet.push(current);
+        current.classList.toggle('closed-node');
+        current.classList.toggle('open-node');
+        var neighbors = $(current).data('neighbors');
+        for (neighbor of neighbors) {
+            if (!closedSet.includes(neighbor)) {
+                $(neighbor).data('previous', current);
+
+                if (!openSet.includes(neighbor)) {
+                    openSet.push(neighbor);
+                    neighbor.classList.toggle('open-node');
+                }
+            }
+        }
+    }
+
+    function StartDijkstra() {
+        openSet = [];
+        closedSet = [];
+        start = grid[GetStartPos()[0]][GetStartPos()[1]];
+        end = grid[GetEndPos()[0]][GetEndPos()[1]];
+        openSet.push(start);
+        start.classList.toggle('open-node');
+        var timer = setInterval(() => {
+            RunDijkstra(openSet, closedSet, timer);
+            if (openSet.length <= 0) {
+                clearInterval(timer);
+                hasStarted = false;
+                needsReset = true;
+            }
+        }, 15)
+    }
+
+    function ReBuildPath(current, timer) {
+        clearInterval(timer);
+        path = [];
+        var temp = current;
+        path.push(temp);
+        var t;
+        if ($(temp).data('previous') != undefined) {
+            t = setInterval(() => {
+                temp.classList.toggle('closed-node');
+                temp.classList.toggle('best-path');
+                path.push($(temp).data('previous'));
+                temp = $(temp).data('previous');
+                if ($(temp).data('previous') == undefined) {
+                    clearInterval(t);
+                    hasStarted = false;
+                    needsReset = true;
+                }
+            }, 50);
+        } 
+    }
+
+
     function RunAStar(openSet, closedSet, timer) {
         var lowestFValue = 0
         for (var i = 0; i < openSet.length; i++) {
@@ -185,22 +307,7 @@ $(document).ready(function() {
         var current = openSet[lowestFValue];
 
         if (current === end) {
-            clearInterval(timer);
-            path = [];
-            var temp = current;
-            path.push(temp);
-            var t;
-            if ($(temp).data('previous') != undefined) {
-                t = setInterval(() => {
-                    temp.classList.toggle('closed-node');
-                    temp.classList.toggle('best-path');
-                    path.push($(temp).data('previous'));
-                    temp = $(temp).data('previous');
-                    if ($(temp).data('previous') == undefined) {
-                        clearInterval(t);
-                    }
-                }, 50);
-            } 
+            ReBuildPath(current, timer);
         }
         
         RemoveFromArray(openSet, current);
@@ -224,7 +331,6 @@ $(document).ready(function() {
                         openSet.push(neighbor);
                         neighbor.classList.toggle('open-node');
                     }
-                    console.log('hiii')
                 }
             } 
         }
@@ -233,8 +339,8 @@ $(document).ready(function() {
     function StartAStar() {
         openSet = [];
         closedSet = [];
-        start = grid[GetStartPos()[0]][GetStartPos()[1]]
-        end = grid[GetEndPos()[0]][GetEndPos()[1]]
+        start = grid[GetStartPos()[0]][GetStartPos()[1]];
+        end = grid[GetEndPos()[0]][GetEndPos()[1]];
         $(start).data('g', 0);
         $(start).data('f', h(GetStartPos()[0], GetStartPos()[1], GetEndPos()[0], GetEndPos()[1]));
         openSet.push(start);
@@ -243,6 +349,8 @@ $(document).ready(function() {
             RunAStar(openSet, closedSet, timer);
             if (openSet.length <= 0) {
                 clearInterval(timer);
+                hasStarted = false;
+                needsReset = true;
             }
         }, 15);
 
@@ -295,7 +403,7 @@ $(document).ready(function() {
                 $(item).data('g', Infinity);
                 $(item).data('neighbors', 0);
                 $(item).data('previous', 0);
-                item.addEventListener('mouseout', (e) => HandleWallPlacement(e));
+                item.addEventListener('mouseover', (e) => HandleWallPlacement(e));
                 container.appendChild(grid[i][j]);
             }
         }
@@ -303,6 +411,7 @@ $(document).ready(function() {
     
     var timeout = null;
     var hasStarted = false;
+    var needsReset = false;
     var rows = 20;
     var cols = 50;
     var grid;
