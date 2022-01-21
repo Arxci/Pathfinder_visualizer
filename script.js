@@ -1,16 +1,20 @@
 $(document).ready(function() {
     function HandleWallPlacement(e) {
-
-            if (e.shiftKey && (e.target.className === 'grid-item' || e.target.className === 'grid-item wall') && e.buttons) {
-                if (!hasStarted) {
-                    if (e.target.childNodes.length == 0) {
+        if (e.shiftKey && (e.target.className === 'grid-item' || e.target.className === 'grid-item wall') && e.buttons) {
+            if (!hasStarted && !needsReset) {
+                if (!creatingMaze) {
+                    if (!resettingWalls) {
                         e.target.classList.toggle('wall');
+                    } else {
+                        StartError("Walls are currently being reset!");
                     }
                 } else {
-                    StartError("Visualizer is currently running!");
+                    StartError("A maze is currently being made!");
                 }
+            } else {
+                StartError("Visualizer is currently running!");
             }
-
+        }
     }
     
     function IsWall(gridItem) {
@@ -19,8 +23,8 @@ $(document).ready(function() {
     
     function HandleStartNodePlacement(e) {
             if (e.buttons && e.target.className === 'grid-item' && !e.shiftKey && !e.ctrlKey) {
-                if (!hasStarted) {
-                    if (e.target.childNodes.length == 0) {
+                if (!hasStarted && !needsReset) {
+                    if (!creatingMaze) {
                         const start = document.getElementsByClassName('start');
                         if (start[0]) {
                             start[0].parentElement.removeChild(start[0]);
@@ -31,6 +35,8 @@ $(document).ready(function() {
                         item.classList.toggle('start');
                         item.style.color = '#000000';
                         e.target.appendChild(item);
+                    } else {
+                        StartError("A maze is currently being made!");
                     }
                 } else {
                     StartError("Visualizer is currently running!");
@@ -41,8 +47,8 @@ $(document).ready(function() {
     
     function HandleTargetNodePlacement(e) {
             if (e.ctrlKey && e.buttons && e.target.className === 'grid-item') {
-                if (!hasStarted) {
-                    if (e.target.childNodes.length == 0) {
+                if (!hasStarted && !needsReset) {
+                    if (!creatingMaze) {
                         const target = document.getElementsByClassName('target');
                         if (target[0]) {
                             target[0].parentElement.removeChild(target[0]);
@@ -53,6 +59,8 @@ $(document).ready(function() {
                         item.classList.toggle('target');
                         item.style.color = '#000000';
                         e.target.appendChild(item);
+                    } else {
+                        StartError("A maze is currently being made!");
                     }
                 } else {
                     StartError("Visualizer is currently running!");
@@ -92,21 +100,69 @@ $(document).ready(function() {
         return pos;
     }
     
+    function ResetNodes() {
+        if (!hasStarted) {
+            var nodes = document.getElementsByClassName('grid-item open-node');
+            var node;
+            var timer;
+            if (document.getElementsByClassName('grid-item open-node').length > 0 || document.getElementsByClassName('grid-item best-path').length > 0 || document.getElementsByClassName('grid-item closed-node').length > 0) {
+                timer = setInterval(() => {
+                    if (document.getElementsByClassName('grid-item best-path').length == 0 && document.getElementsByClassName('grid-item closed-node').length == 0 && document.getElementsByClassName('grid-item open-node').length == 0) {
+                        clearInterval(timer);
+                        needsReset = false;
+                    } else if (document.getElementsByClassName('grid-item closed-node').length == 0 && document.getElementsByClassName('grid-item open-node').length == 0) {
+                        nodes = document.getElementsByClassName('grid-item best-path');
+                        node = nodes[0];
+                    node.classList.remove('best-path');
+                    } else if (document.getElementsByClassName('grid-item open-node').length == 0) {
+                        nodes = document.getElementsByClassName('grid-item closed-node');
+                        node = nodes[0];
+                        node.classList.remove('closed-node');
+                    } else {
+                        node = nodes[0];
+                        node.classList.remove('open-node');
+                    }
+                    if (node) {
+                        $(node).data('f', Infinity);
+                        $(node).data('h', 0);
+                        $(node).data('g', Infinity);
+                        $(node).data('neighbors', 0);
+                        $(node).data('previous', 0);
+                    }  
+                }, 5)
+            } else {
+                clearInterval(timer);
+                needsReset = false;
+            }
+        } else {
+            StartError("Visualizer already running!");
+        }
+    }
+
     function ResetWalls() {
         if (!hasStarted) {
-            const nodes = document.getElementsByClassName('grid-item');
-            for (let node of nodes) {
-                node.classList.remove('wall');
-                node.classList.remove('open-node');
-                node.classList.remove('closed-node');
-                node.classList.remove('best-path');
-                $(node).data('f', Infinity);
-                $(node).data('h', 0);
-                $(node).data('g', Infinity);
-                $(node).data('neighbors', 0);
-                $(node).data('previous', 0);
+            if (!creatingMaze && !resettingWalls) {
+                var timer;
+                resettingWalls = true
+                const nodes = document.getElementsByClassName('grid-item wall');
+                if (nodes.length > 0) {
+                    timer = setInterval(() => {
+                        node = nodes[0];
+                        node.classList.remove('wall');
+                        if (nodes.length === 0) {
+                            clearInterval(timer);
+                            resettingWalls = false
+                        }
+                    }, 5)
+                } else {
+                    clearInterval(timer);
+                    resettingWalls = false;
+                }
+            } else {
+                StartError("A maze is currently being made!");
             }
-            needsReset = false;
+        } else {
+            StartError("Visualizer already running!");
         }
     }
     
@@ -125,18 +181,6 @@ $(document).ready(function() {
             case 1:
                 currentPathfinder = 'Dijksra';
                 dropdown.childNodes[1].innerText = "Dijksra's Algorithm";
-                break;
-            case 2:
-                currentPathfinder = 'Swarm';
-                dropdown.childNodes[1].innerText = 'Swarm Algorithm';
-                break;
-            case 3:
-                currentPathfinder = 'BFS';
-                dropdown.childNodes[1].innerText = 'Breadth-first Search';
-                break;
-            case 4:
-                currentPathfinder = 'DFS';
-                dropdown.childNodes[1].innerText = 'Depth-first Search';
                 break;
         }
     }
@@ -173,6 +217,14 @@ $(document).ready(function() {
             StartError("Reset nodes to continue!");
             return;
         }
+        if (creatingMaze) {
+            StartError("A maze is currently being made!");
+            return;
+        }
+        if(resettingWalls) {
+            StartError("Walls are currently being reset!");
+            return;
+        }
         switch (currentPathfinder) {
             case '':
                 StartError("Select a pathfinder to run the visualizer!");
@@ -195,19 +247,6 @@ $(document).ready(function() {
                 }
                 StartDijkstra();
                 break;
-            case 'Swarm':
-                hasStarted = true;
-                for (var i = 0; i < rows; i++) {
-                    for(var j = 0; j < cols; j++) {
-                        UpdateNeighbors(i, j)
-                    }
-                }
-                StartSwarm();
-                break;
-            case 'BFS':
-                break;
-            case 'DFS':
-                break;
         }
     }
     
@@ -217,21 +256,6 @@ $(document).ready(function() {
                 arr.splice(i, 1);
             }
         }
-    }
-
-    function RunSwarm(openSet, closedSet, timer) {
-
-    }
-
-    function StartSwarm() {
-        var timer = setInterval(() => {
-            RunSwarm(openSet, closedSet, timer);
-            if (openSet.length <= 0) {
-                clearInterval(timer);
-                hasStarted = false;
-                needsReset = true;
-            }
-        }, 15)
     }
 
     function RunDijkstra(openSet, closedSet, timer) {
@@ -408,16 +432,140 @@ $(document).ready(function() {
             }
         }
     }
+
+    function CreateMaze() {
+        if (!hasStarted) {
+            if (!creatingMaze) {
+                if(!resettingWalls) {
+                    for(var i = 0; i < rows; i++ ) {
+                        for(var j = 0; j < cols; j++) {
+                            const temp = grid[i][j];
+                            if (temp.childNodes[0]) {
+                                if (temp.childNodes[0].className == 'far fa-dot-circle target') {
+                                    temp.childNodes[0].parentElement.removeChild(temp.childNodes[0]);
+                                } else if (temp.childNodes[0].className == 'fa fa-arrow-right start') {
+                                    temp.childNodes[0].parentElement.removeChild(temp.childNodes[0]);
+                                }
+                            }
+                        }
+                    }
+                    i = 0;
+                    j = 0;
+                    ResetWalls();
+                    ResetNodes();
+                    maze = mazes[parseInt(Math.random() * (mazes.length))];
+                    timer = setInterval(() => {
+                        if (!resettingWalls && !needsReset) {
+                            creatingMaze = true;
+                            if (i === maze.length - 1 && j === maze[i].length - 1) {
+                                clearInterval(timer);
+                                creatingMaze = false;
+                            }
+                            if (maze[i][j] === 1) {
+                                grid[i][j].classList.toggle('wall');
+                            } else if (maze[i][j] === 0) {
+                                grid[i][j].classList.remove('wall');
+                            }
+                            j++;
+                            if (j === maze[i].length) {
+                                j = 0;
+                                i++;
+                            }
+                        }
+                    }, 5)
+                } else {
+                    StartError("Walls are currently being reset!");
+                }
+            } else {
+                StartError("A maze is currently being made!");
+            }
+        } else {
+            StartError("Visualizer already running!");
+
+        }
+    }
     
     var timeout = null;
     var hasStarted = false;
     var needsReset = false;
+    var creatingMaze = false
+    var resettingWalls = false;
     var rows = 20;
     var cols = 50;
     var grid;
+    const mazes = [
+        [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+            [1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1],
+            [1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+            [1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1],
+            [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+            [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ],
+        [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+            [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+            [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1],
+            [1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1],
+            [1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+            [1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+            [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ],
+        [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1],
+            [1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+            [1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1],
+            [1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ]
+    ]
     MakeGrid(rows, cols);
     
     window.addEventListener('mousedown', (e) => HandleWallPlacement(e));
+    const resetNodes = document.getElementsByClassName('reset-nodes')[0];
+    resetNodes.addEventListener('click', ResetNodes);
     const resetWalls = document.getElementsByClassName('reset-walls')[0];
     resetWalls.addEventListener('click', ResetWalls);
     window.addEventListener('mousedown', (e) => HandleStartNodePlacement(e));
@@ -434,4 +582,7 @@ $(document).ready(function() {
     
     const startButton = document.getElementsByClassName('start-button')[0];
     startButton.addEventListener('click', () => StartVisualizer(rows, cols));    
+
+    const createMaze = document.getElementsByClassName('create-maze')[0];
+    createMaze.addEventListener('click', CreateMaze);
 })

@@ -104,7 +104,7 @@ body {
     position: relative;
 }
 
-.reset-walls, .start-button {
+.reset-walls, .start-button, .reset-nodes, .create-maze {
     border: 2px solid var(--background-purple);
     border-radius: 10rem;
     width: auto;
@@ -116,9 +116,13 @@ body {
     transition: 300ms;
 }
 
-.reset-walls:hover, .start-button:hover {
+.reset-walls:hover, .start-button:hover, .reset-nodes:hover, .create-maze:hover {
     transform: scale(1.1);
     background-color: var(--background-purple);
+}
+
+.nav-buttons {
+    margin-top: 1rem;
 }
 
 .button.dropdown {
@@ -222,7 +226,7 @@ ul .open {
 
 .pathfinder-container {
     width: 100%;
-    min-height: calc(100vh - 15rem);
+    min-height: calc(100vh - 25rem);
     height: auto;
     display: grid;
     justify-content: center;
